@@ -1,3 +1,26 @@
+def create_template():
+    print('Hi')
+    today = datetime.now()
+    #today = date.today()
+    today = today.strftime('%y%y%m%d%H%M%S')
+    print(today)
+    wb = Workbook()
+    ATP = wb.add_sheet('ATP')
+    ESS = wb.add_sheet('ESS')
+    Stat = wb.add_sheet('Statistics')
+    Tests_List = ['Temp', 'SN', 'Output Power @ P1dBCP','Output Power Control Range/Resolution, FWD PWR Ind', 'Output IP3', 'LO Carrier Leakage','Sideband Suppression',
+                  'Frequency Accuracy and Stability', 'A1 - Noise Figure vs. Gain', 'A1 - Gain variability', 'A1 - Image Suppression vs. Gain', 'Spurious',
+                  'A2 - Noise Figure vs. Gain', 'A2 - Gain variability', 'A2 - Image Suppression vs. Gain', 'Average Power Consumption', 'Input Voltage', 'Digital Tests'
+                  ]
+    for index in range(len(Tests_List)):
+        ATP.write(0, index, Tests_List[index])
+        ESS.write(0, index, Tests_List[index])
+        Stat.write(0, index, Tests_List[index])
+
+    wb.save(f'{today}.xls')
+    return today
+
+
 def excel_fun_read(file_name, template_name):
     for list_number in range(1, 6):
         inputWorkbook = xlrd.open_workbook(file_name)
@@ -69,14 +92,16 @@ def write_list_of_pass_and_fail(B_col_expended, B_col, file_name, list_number):
     Results_col = ['PASS']
     inputWorkbook = xlrd.open_workbook(file_name)
     inputWorksheet = inputWorkbook.sheet_by_index(list_number)
+
     for index in range(len(B_col)):
         for i in range(B_col[index], B_col[index] + B_col_expended[index]):
-            print(f'indicated value: {str(inputWorksheet.cell_value(i, 7))}')
+            print(f'indicated value: {str(inputWorksheet.cell_value(i, 7))}, index {i}')
             if str(inputWorksheet.cell_value(i, 7)) == 'FAIL' or str(inputWorksheet.cell_value(i, 7)) == 'N/T':
-                Results_col[index] = Results_col[index].append(str(inputWorksheet.cell_value(i, 7)))
+                Results_col[index] = str(inputWorksheet.cell_value(i, 7))
 
-            else:
-                Results_col.append('PASS')
+        if len(Results_col) < len(B_col):
+            Results_col.append('PASS')
+
 
     print('Stop')
     return Results_col
@@ -85,16 +110,17 @@ def write_list_of_pass_and_fail(B_col_expended, B_col, file_name, list_number):
 def main(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-    path = '/home/pi/Desktop/Python/fwdreportsnb'
+    #path = '/home/pi/Desktop/Python/fwdreportsnb'
     template_path = '/home/pi/Desktop/Pycharm/Tempalte.xlsx'
     #path = input('Input Path location: \n')
-    #path = 'D:\Rasberry Pie\Python\Excel\Excel'
+    path = 'D:\Rasberry Pie\Python\Excel\Excel'
     excel_files = [f for f in os.listdir(path) if f.endswith('.xlsx')]
     excel_files = sorted(excel_files)
     print(excel_files, '\n')
     print(excel_files[0])
-    i = 0
-    a = range(len(excel_files))
+
+    time_date = create_template()
+    print(time_date)
     for i in range(len(excel_files)):
         full_path = os.path.join(path, excel_files[i])
         print('\n', excel_files[i])
@@ -108,9 +134,13 @@ if __name__ == '__main__':
     import os
     #import pandas as pd
     import xlrd
-    import xlwt
-    import xlutils
+    #import xlwt
+    #import xlutils
     import openpyxl
+    from xlwt import Workbook
+    from datetime import datetime
     main('PyCharm')
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+
