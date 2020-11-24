@@ -1,6 +1,3 @@
-from turtle import pd
-
-
 def create_template(path):
     print('Hi')
     today = datetime.now()
@@ -19,6 +16,7 @@ def create_template(path):
         ESS.write(0, index, Tests_List[index])
         Stat.write(0, index, Tests_List[index])
     temp_path = os.path.join(path, today)
+    temp_path = today
     wb.save(f'{temp_path}.xls')
     return today, temp_path
 
@@ -112,14 +110,23 @@ def sort_list_of_pass_and_fail(B_col_expended, B_col, file_name, list_number):
 
 def write_to_excel(file_name, template_name, template_location, list_number, sorted_column):
     print(template_location)
-    df = pd.DataFrame(sorted_column)
 
+    a = os.path.join(template_location + '.xls')
     if list_number == 1:
 
-        for index in range(len(sorted_column)):
-            writer = pd.ExcelWriter(template_location, engine='xlsxwriter')
-            df.to_excel(writer, sheet_name='ATR')
-            writer.save()
+        file_name = sys.argv[1]
+        worksheet_index = int(sys.argv[2])
+        row = int(sys.argv[3])
+        column = int(sys.argv[4])
+        new_cell_value = sys.argv[5]
+
+        wb_readonly = open_workbook(file_name)
+        wb = copy(wb_readonly)
+
+        ws = wb.get_sheet(worksheet_index)
+        ws.write(row, column, new_cell_value)
+
+        wb.save(file_name)
 
     else:
 
@@ -128,11 +135,11 @@ def write_to_excel(file_name, template_name, template_location, list_number, sor
 def main(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-    #path = '/home/pi/Desktop/Python/fwdreportsnb'
-    #template_path = '/home/pi/Desktop/Pycharm/Tempalte.xlsx'
-    template_path = 'D:\Rasberry Pie\Python\Excel\Result'
+    path = '/home/pi/Desktop/Python/fwdreportsnb'
+    template_path = '/home/pi/Desktop/Pycharm/Tempalte'
+    #template_path = 'D:\Rasberry Pie\Python\Excel\Result'
     #path = input('Input Path location: \n')
-    path = 'D:\Rasberry Pie\Python\Excel\Excel'
+    #path = 'D:\Rasberry Pie\Python\Excel\Excel'
     excel_files = [f for f in os.listdir(path) if f.endswith('.xlsx')]
     excel_files = sorted(excel_files)
     print(excel_files, '\n')
@@ -151,15 +158,15 @@ def main(name):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     import os
-    import pandas as pd
+    #import pandas as pd
     import xlrd
+    import xlsxwriter
     #import xlwt
-    #import xlutils
+    import xlutils
     import openpyxl
+    from xlutils.copy import copy
     from xlwt import Workbook
     from datetime import datetime
     main('PyCharm')
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
-
-
