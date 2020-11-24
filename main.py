@@ -3,21 +3,37 @@ def create_template(path):
     today = datetime.now()
     today = today.strftime('%y%y%m%d%H%M%S')
     print(today)
-    wb = Workbook()
-    ATP = wb.add_sheet('ATR')
-    ESS = wb.add_sheet('ESS')
-    Stat = wb.add_sheet('Statistics')
-    Tests_List = ['Temp', 'SN', 'Output Power @ P1dBCP','Output Power Control Range/Resolution, FWD PWR Ind', 'Output IP3', 'LO Carrier Leakage','Sideband Suppression',
-                  'Frequency Accuracy and Stability', 'A1 - Noise Figure vs. Gain', 'A1 - Gain variability', 'A1 - Image Suppression vs. Gain', 'Spurious',
-                  'A2 - Noise Figure vs. Gain', 'A2 - Gain variability', 'A2 - Image Suppression vs. Gain', 'Average Power Consumption', 'Input Voltage', 'Digital Tests'
-                  ]
-    for index in range(len(Tests_List)):
-        ATP.write(0, index, Tests_List[index])
-        ESS.write(0, index, Tests_List[index])
-        Stat.write(0, index, Tests_List[index])
     temp_path = os.path.join(path, today)
-    temp_path = today
-    wb.save(f'{temp_path}.xls')
+    #temp_path = today
+    # Create a workbook and add a worksheet.
+    workbook = xlsxwriter.Workbook(f'{temp_path}.xlsx')
+    worksheet0 = workbook.add_worksheet('ATR')  # Defaults to Sheet1.
+    worksheet1 = workbook.add_worksheet('ESS')  # Data.
+    worksheet2 = workbook.add_worksheet('Statistics')  # Defaults to Sheet
+
+    # Some data we want to write to the worksheet.
+    Tests_List = ['Temp', 'SN', 'Output Power @ P1dBCP', 'Output Power Control Range/Resolution, FWD PWR Ind',
+                  'Output IP3', 'LO Carrier Leakage', 'Sideband Suppression',
+                  'Frequency Accuracy and Stability', 'A1 - Noise Figure vs. Gain', 'A1 - Gain variability',
+                  'A1 - Image Suppression vs. Gain', 'Spurious',
+                  'A2 - Noise Figure vs. Gain', 'A2 - Gain variability', 'A2 - Image Suppression vs. Gain',
+                  'Average Power Consumption', 'Input Voltage', 'Digital Tests'
+                  ]
+
+    # Start from the first cell. Rows and columns are zero indexed.
+    row = 0
+    # col = 0
+
+    # Iterate over the data and write it out row by row.
+    for index in range(3) :
+        for i in range(len(Tests_List)) :
+            worksheet0.write(row, i, Tests_List[i])
+            worksheet1.write(row, i, Tests_List[i])
+            worksheet2.write(row, i, Tests_List[i])
+            # col += 1
+
+    workbook.close()
+
     return today, temp_path
 
 
@@ -111,39 +127,32 @@ def sort_list_of_pass_and_fail(B_col_expended, B_col, file_name, list_number):
 def write_to_excel(file_name, template_name, template_location, list_number, sorted_column):
     print(template_location)
 
-    a = os.path.join(template_location + '.xls')
+    a = os.path.join(template_location + '.xlsx')
+    wb = openpyxl.load_workbook(a)
+    print(wb.sheetnames)
+    inputWorkbook = xlrd.open_workbook(file_name)
+
     if list_number == 1:
+        inputWorksheet = inputWorkbook.sheet_by_index(1)
+        row_number = print(inputWorksheet.nrows, '\n')  # <- get rows number starts from 0
 
-        file_name = sys.argv[1]
-        worksheet_index = int(sys.argv[2])
-        row = int(sys.argv[3])
-        column = int(sys.argv[4])
-        new_cell_value = sys.argv[5]
-
-        wb_readonly = open_workbook(file_name)
-        wb = copy(wb_readonly)
-
-        ws = wb.get_sheet(worksheet_index)
-        ws.write(row, column, new_cell_value)
-
-        wb.save(file_name)
 
     else:
-
+        inputWorksheet = inputWorkbook.sheet_by_index(2)
+        row_number = print(inputWorksheet.nrows, '\n')  # <- get rows number starts from 0
         pass
-
+    wb.save(a, as_template=False)
 def main(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
     path = '/home/pi/Desktop/Python/fwdreportsnb'
     template_path = '/home/pi/Desktop/Pycharm/Tempalte'
-    #template_path = 'D:\Rasberry Pie\Python\Excel\Result'
+    template_path = 'D:\Rasberry Pie\Python\Excel\Result'
     #path = input('Input Path location: \n')
-    #path = 'D:\Rasberry Pie\Python\Excel\Excel'
+    path = 'D:\Rasberry Pie\Python\Excel\Excel'
     excel_files = [f for f in os.listdir(path) if f.endswith('.xlsx')]
     excel_files = sorted(excel_files)
     print(excel_files, '\n')
-    print(excel_files[0])
 
     time_date, Template_path = create_template(template_path)
     print(time_date)
@@ -161,7 +170,7 @@ if __name__ == '__main__':
     #import pandas as pd
     import xlrd
     import xlsxwriter
-    #import xlwt
+    import xlwt
     import xlutils
     import openpyxl
     from xlutils.copy import copy
