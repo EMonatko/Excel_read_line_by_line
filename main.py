@@ -1,10 +1,12 @@
-def create_template(path):
-    print('Hi')
+def create_template(path_string) :
+    """This function creates an excel file which will summerize all the data from other excels
+       The input of is path string and the output is the date in format YMDHMS
+    """
     today = datetime.now()
     today = today.strftime('%y%y%m%d%H%M%S')
-    print(today)
-    temp_path = os.path.join(path, today)
-    #temp_path = today
+    # print(today)
+    temp_path = os.path.join(path_string, today)
+    # temp_path = today
     # Create a workbook and add a worksheet.
     workbook = xlsxwriter.Workbook(f'{temp_path}.xlsx')
     worksheet0 = workbook.add_worksheet('ATR')  # Defaults to Sheet1.
@@ -37,145 +39,164 @@ def create_template(path):
     return today, temp_path
 
 
-def excel_fun_read(file_name, template_name, template_location):
-    for list_number in range(1, 6):
+def excel_fun_read(file_name, template_name, template_location, counter) :
+    """
+    Function receive 3 string inputs and searching for the 'PASS\ FAIL' section in the excel file
+    :param file_name:
+    :param template_name:
+    :param template_location:
+    :return:
+    """
+    for list_number in range(1, 4) :
         inputWorkbook = xlrd.open_workbook(file_name)
         inputWorksheet = inputWorkbook.sheet_by_index(list_number)
-        print(inputWorksheet.nrows, '\n') # <- get rows number starts from 0
-        print(inputWorksheet.ncols, '\n') # <- get coloms number starts from 0
-        if list_number == 1:
-            sn = int(inputWorksheet.cell_value(0, 8)) # <- get SN number
-            print(sn)   # <- Indicates which file is open
-            Tests_List = ['Temp', 'SN', 'Output Power @ P1dBCP', 'A1 - Output Power Control Range/Resolution, FWD PWR Ind',
-                          'A2 - Output Power Control Range/Resolution, FWD PWR Ind', 'Output IP3', 'LO Carrier Leakage', 'Sideband Suppression',
-                          'Frequency Accuracy and Stability', 'A1 - Noise Figure vs. Gain', 'A1 - Gain variability',
-                          'A1 - Image Suppression vs. Gain', 'Spurious',
-                          'A2 - Noise Figure vs. Gain', 'A2 - Gain variability', 'A2 - Image Suppression vs. Gain',
-                          'Average Power Consumption', 'Input Voltage', 'Digital Tests'
-                          ]
-            Tests_locations_B = [] #<- Creation of list
-            B_col_expended = [] #<- length of cells
-            G_col = []  #<- Creation of list
-            B_col = []  #<- where B_col_expended starts
-            G_ATP = []
-            ESS_1_Cold = []
-            ESS_2_Cold = []
-            ESS_1_Hot = []
-            ESS_2_Hot = []
+        rows = inputWorksheet.nrows
+        cols = inputWorksheet.ncols
+        print(f'{rows} Rows in the file\t')  # <- get rows number starts from 0
+        print(f'{cols} Cols in the file\n')  # <- get coloms number starts from 0
+        dictionary = {1 : 'ATR', 2 : 'ESS Hot cycle 1', 3 : 'ESS Cold cycle 1', 4 : 'ESS Hot cycle 2',
+                      5 : 'ESS Cold cycle 2'}
+        if cols == 9 :
+            print('next file')
+        if cols == 12 or cols == 9 :
+            cols = 8
+            sub = 2
+        else :
+            cols = 12
+            sub = 3
+        for excel_row in range(1, sub) :
+            sn = int(inputWorksheet.cell_value(0, cols))
+            print(f'working on 000{sn}.xlsx')  # <- Indicates which file is open
+            TestLocation_list = []  # <- Creation of list
+            PassFail_col_list = []  # <- Creation of list
+            for i in range(rows) :
+                # Follow the H colom check if there is 'PASS'/'FAIL' or empty cell
+                # If empty cell skip it until the end of the excel file
+                if inputWorksheet.cell_value(i, cols - excel_row) == 'PASS' or inputWorksheet.cell_value(i,
+                                                                                                         cols - excel_row) == 'FAIL' or inputWorksheet.cell_value(
+                        i, cols - excel_row) == 'N/T' :
+                    TestLocation_list.append(i)
+                    PassFail_col_list.append(str(inputWorksheet.cell_value(i, cols - excel_row)))
 
-            for i in range(inputWorksheet.nrows):
+            location_list, len_of_every_test_list = Create_2_lists_of_locations(TestLocation_list, list_number)
+            pass_fail_list = sort_list_of_pass_and_fail(len_of_every_test_list, location_list, file_name, list_number,
+                                                        cols, PassFail_col_list, excel_row)
 
-            #Follow the H colom check if there is 'PASS'/'FAIL' or empty cell
-            #If empty cell skip it until the end of the excel file
+            # print(f'''It's the end of {list_number} in file 000{sn} excel_row = {excel_row}''')
+            print(f'''It's the end of {dictionary.pop(counter)} in file 000{sn}\n''')
+            write_to_excel(sn, template_location, pass_fail_list, counter)
+            counter += 1
 
-                if inputWorksheet.cell_value(i, 7) == 'PASS' or inputWorksheet.cell_value(i, 7) == 'FAIL':
-                    Tests_locations_B.append(i)
-                    G_col.append(str(inputWorksheet.cell_value(i, 6))) # <- Only in ATR
-                    #B_col.append(str(inputWorksheet.cell_value(i - 1, 1)))
-
-            B_col_expended, B_col = Create_2_lists_of_locations(Tests_locations_B, B_col_expended, B_col, list_number)
-            sorted_column = sort_list_of_pass_and_fail(B_col_expended, B_col, file_name, list_number)
-
-            print(f'''It's the end of {list_number} loop''')
-            write_to_excel(file_name, template_name, template_location, list_number, sorted_column)
     print('''it's the end of the loop''')
 
-    #print(files.head())
-    #files.head()
 
-def Create_2_lists_of_locations(Tests_locations_B, B_col_expended, B_col, list_number):
+def Create_2_lists_of_locations(TestLocation_list, list_number) :
     counter = 1
-    for i_sub in range(len(Tests_locations_B)):
-
-        try:
-            if list_number == 1:
-                if Tests_locations_B[i_sub] == 6 or Tests_locations_B[i_sub] == 110 or Tests_locations_B[i_sub] == 139 or Tests_locations_B[i_sub] == 172 or Tests_locations_B[i_sub] == 224:
-                    B_col.append(Tests_locations_B[i_sub])
-            if Tests_locations_B[i_sub] + 1 == Tests_locations_B[i_sub + 1]:
-                if counter == 1:
-                    B_col.append(Tests_locations_B[i_sub])
+    temp_location_list = []
+    temp_len_of_every_test_list = []
+    for i_sub in range(len(TestLocation_list)) :
+        try :
+            if list_number == 1 :
+                if TestLocation_list[i_sub] == 6 or TestLocation_list[i_sub] == 110 or TestLocation_list[
+                    i_sub] == 139 or TestLocation_list[i_sub] == 172 or TestLocation_list[i_sub] == 224 :
+                    temp_location_list.append(TestLocation_list[i_sub])
+            if TestLocation_list[i_sub] + 1 == TestLocation_list[i_sub + 1] :
+                if counter == 1 :
+                    temp_location_list.append(TestLocation_list[i_sub])
                 counter = counter + 1
 
-            else:
-                B_col_expended.append(counter)
+            else :
+                temp_len_of_every_test_list.append(counter)
                 counter = 1
-        except:
-            print("An exception occurred")
+        except :
+            pass
+    return temp_location_list, temp_len_of_every_test_list
 
-    return B_col_expended, B_col
 
-
-def sort_list_of_pass_and_fail(B_col_expended, B_col, file_name, list_number):
+def sort_list_of_pass_and_fail(len_of_test_list, location_of_every_test_list, file_name, list_number, cols,
+                               PassFail_col_list, excel_row) :
     Results_col = ['PASS']
     inputWorkbook = xlrd.open_workbook(file_name)
     inputWorksheet = inputWorkbook.sheet_by_index(list_number)
+    try :
+        for index in range(len(location_of_every_test_list)) :
+            for i in range(location_of_every_test_list[index],
+                           location_of_every_test_list[index] + len_of_test_list[index]) :
+                if str(inputWorksheet.cell_value(i, cols - excel_row)) == 'FAIL' or str(
+                        inputWorksheet.cell_value(i, cols - excel_row)) == 'N/T' :
+                    Results_col[index] = str(inputWorksheet.cell_value(i, cols - excel_row))
 
-    for index in range(len(B_col)):
-        for i in range(B_col[index], B_col[index] + B_col_expended[index]):
-            print(f'indicated value: {str(inputWorksheet.cell_value(i, 7))}, index {i}')
-            if str(inputWorksheet.cell_value(i, 7)) == 'FAIL' or str(inputWorksheet.cell_value(i, 7)) == 'N/T':
-                Results_col[index] = str(inputWorksheet.cell_value(i, 7))
-
-        if len(Results_col) < len(B_col):
-            Results_col.append('PASS')
-
-
-    print('Stop')
+            if len(Results_col) < len(location_of_every_test_list) :
+                Results_col.append('PASS')
+    except :
+        pass
+    print(Results_col)
+    inputWorkbook.release_resources()
     return Results_col
 
 
-def write_to_excel(file_name, template_name, template_location, list_number, sorted_column):
-    print(template_location)
+def write_to_excel(sn, path, results, counter):
+    temp_path = f'{path}.xlsx'
+    workbook = openpyxl.load_workbook(filename=temp_path)
+    print(workbook.sheetnames)
+    atr = workbook['ATR']
+    ess = workbook['ESS']
+    temp_dictionary = {1 : 'Room', 2 : 'Hot', 3 : 'Cold'}
+    temp = temp_dictionary.pop(1)
+    if counter == 2 or counter == 4 :
+        temp = temp_dictionary.pop(2)
+    if counter == 3 or counter == 5 :
+        temp = temp_dictionary.pop(3)
+    sheet = workbook.active
+    dictionary = {1 : atr, 2 : ess}
+    print(sheet.title)
+    if counter >= 2 :
+        counter = 2
+    dictionary_value = dictionary.pop(counter)
 
-    a = os.path.join(template_location + '.xlsx')
-    wb = openpyxl.load_workbook(a)
-    print(wb.sheetnames)
-    inputWorkbook = xlrd.open_workbook(file_name)
+    for rows in range(1, 100) :
+        if dictionary_value.cell(row=rows, column=1).value == None :
+            print(f'empty row index: {rows}')
 
-    if list_number == 1:
-        inputWorksheet = inputWorkbook.sheet_by_index(1)
-        row_number = print(inputWorksheet.nrows, '\n')  # <- get rows number starts from 0
+            dictionary_value.cell(row=rows, column=1, value=temp)
+            dictionary_value.cell(row=rows, column=2, value=f'000{sn}')
+            break
+
+    for columns in range(3, len(results) + 3) :
+        dictionary_value.cell(row=rows, column=columns, value=results[columns - 4])
+
+    workbook.save(filename=temp_path)
 
 
-    else:
-        inputWorksheet = inputWorkbook.sheet_by_index(2)
-        row_number = print(inputWorksheet.nrows, '\n')  # <- get rows number starts from 0
-        pass
-    wb.save(a, as_template=False)
-def main(name):
+def main(name) :
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-    path = '/home/pi/Desktop/Python/fwdreportsnb'
-    template_path = '/home/pi/Desktop/Pycharm/Tempalte'
-    template_path = 'D:\Rasberry Pie\Python\Excel\Result'
-    #path = input('Input Path location: \n')
-    path = 'D:\Rasberry Pie\Python\Excel\Excel'
-    excel_files = [f for f in os.listdir(path) if f.endswith('.xlsx')]
-    excel_files = sorted(excel_files)
-    print(excel_files, '\n')
+    path_string = '/home/pi/Desktop/Python/fwdreportsnb'
+    template_path_string = '/home/pi/Desktop/Pycharm/Tempalte'
+    template_path_string = 'D:\Rasberry Pie\Python\Excel\Result'
+    # path = input('Input Path location: \n')
+    path_string = 'D:\Rasberry Pie\Python\Excel\Excel'
+    excel_files_list = sorted([f for f in os.listdir(path_string) if f.endswith('.xlsx')])
+    # excel_files = sorted(excel_files)
+    print(excel_files_list, '\n')
 
-    time_date, Template_path = create_template(template_path)
+    time_date, Template_path = create_template(template_path_string)
     print(time_date)
-    for i in range(len(excel_files)):
-        full_path = os.path.join(path, excel_files[i])
-        print('\n', excel_files[i])
-        excel_fun_read(full_path, time_date, Template_path)
-        #excel_fun_write(template_path, )
 
+    for i in range(len(excel_files_list)) :
+        counter = 1
+        full_path = os.path.join(path_string, excel_files_list[i])
+        print('\n', excel_files_list[i])
+        excel_fun_read(full_path, time_date, Template_path, counter)
 
 
 # Press the green button in the gutter to run the script.
-if __name__ == '__main__':
+if __name__ == '__main__' :
     import os
-    #import pandas as pd
     import xlrd
     import xlsxwriter
-    import xlwt
-    import xlutils
     import openpyxl
-    from xlutils.copy import copy
     from xlwt import Workbook
     from datetime import datetime
-    main('PyCharm')
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    main('Script')
